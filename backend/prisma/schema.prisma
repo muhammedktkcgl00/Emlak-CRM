@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  AGENT
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  VISIT
+  OFFER
+  WON
+  LOST
+}
+
+enum ListingType {
+  LAND
+  HOUSE
+  COMMERCIAL
+}
+
+enum ListingStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Office {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users     User[]
+  listings  Listing[]
+  customers Customer[]
+  leads     Lead[]
+  tasks     Task[]
+}
+
+model User {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  name         String
+  email        String @unique
+  passwordHash String
+  role         Role   @default(AGENT)
+
+  refreshTokenHash String?
+
+  assignedLeads Lead[]
+
+  createdAt DateTime @default(now())
+}
+
+model Listing {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  title  String
+  type   ListingType
+  status ListingStatus @default(DRAFT)
+
+  city     String?
+  district String?
+  address  String?
+
+  price  Int?
+  areaM2 Int?
+
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Customer {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  fullName String
+  phone    String?
+  email    String?
+  note     String?
+
+  leads Lead[]
+
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  title  String
+  source String?
+  stage  LeadStage @default(NEW)
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id])
+
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id       String @id @default(cuid())
+  officeId String
+  office   Office @relation(fields: [officeId], references: [id])
+
+  title String
+  dueAt DateTime?
+  done  Boolean   @default(false)
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+
+  createdAt DateTime @default(now())
+}
